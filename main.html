@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生成绩管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+            background: #f0f4f8;
+            min-height: 100vh;
+        }
+
+        .header {
+            height: 60px;
+            background: linear-gradient(90deg, #1e3c72, #2a5298);
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        #who {
+            font-size: 14px;
+            color: #ffe;
+        }
+
+        .logout-btn {
+            padding: 6px 16px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .main {
+            display: flex;
+            min-height: calc(100vh - 60px);
+        }
+
+        .sidebar {
+            width: 200px;
+            background: #fff;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+            padding: 20px 0;
+        }
+
+        .sidebar button {
+            display: block;
+            width: 100%;
+            padding: 14px 20px;
+            border: none;
+            background: transparent;
+            text-align: left;
+            font-size: 14px;
+            color: #333;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+
+        .sidebar button:hover {
+            background: #f0f4f8;
+            color: #2a5298;
+        }
+
+        .content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        #content {
+            background: #fff;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            min-height: 400px;
+        }
+
+        #content h3 {
+            color: #2a5298;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        #content input {
+            display: block;
+            width: 100%;
+            max-width: 400px;
+            height: 42px;
+            margin-bottom: 12px;
+            padding: 0 14px;
+            border: 1px solid #dfe1e5;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+
+        #content input:focus {
+            border-color: #2a5298;
+            box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
+        }
+
+        #content button {
+            padding: 10px 24px;
+            background: linear-gradient(90deg, #1e3c72, #2a5298);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-top: 6px;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+
+        #content button:hover {
+            opacity: 0.85;
+        }
+
+        #content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+
+        #content table th {
+            background: #f0f4f8;
+            color: #2a5298;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #dfe1e5;
+            font-weight: 600;
+        }
+
+        #content table td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        #content table tr:hover {
+            background: #f9fafb;
+        }
+
+        #formTip, #findResult, #modTip, #delTip, #sortResult {
+            margin-top: 12px;
+            font-size: 14px;
+            color: #27ae60;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>学生成绩管理系统</h1>
+        <div class="header-right">
+            <span id="who"></span>
+            <button class="logout-btn" id="btnExit">退出</button>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="sidebar">
+            <button id="btnAdd">录入学生信息</button>
+            <button id="btnPrint">打印学生信息</button>
+            <button id="btnCount">统计学生人数</button>
+            <button id="btnFind">查找学生信息</button>
+            <button id="btnModify">修改学生信息</button>
+            <button id="btnDelete">删除学生信息</button>
+            <button id="btnSort">排序</button>
+        </div>
+
+        <div class="content">
+            <div id="content">
+                <h3>欢迎使用学生成绩管理系统</h3>
+                <p>请从左侧选择功能。</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const isAdmin = localStorage.getItem("checkAdmin");
+        const who = document.getElementById("who");
+
+        let students;
+        const past = localStorage.getItem("students");
+        if (past) {
+            students = JSON.parse(past);
+        } else {
+            students = [];
+        }
+
+        if (isAdmin === "1") {
+            who.textContent = "身份：管理员";
+        } else {
+            who.textContent = "身份：游客（只读）";
+        }
+
+        function checkMode(action) {
+            if (isAdmin === "1") {
+                return true;
+            }
+            alert("游客无权" + action);
+            return false;
+        }
+
+        function saveToStorage() {
+            localStorage.setItem("students", JSON.stringify(students));
+        }
+
+        const btnAdd = document.getElementById("btnAdd");
+        const btnPrint = document.getElementById("btnPrint");
+        const btnCount = document.getElementById("btnCount");
+        const btnFind = document.getElementById("btnFind");
+        const btnModify = document.getElementById("btnModify");
+        const btnDelete = document.getElementById("btnDelete");
+        const btnSort = document.getElementById("btnSort");
+        const btnExit = document.getElementById("btnExit");
+
+        btnAdd.addEventListener("click", function () {
+            if (!checkMode("录入学生信息")) return;
+
+            const content = document.getElementById("content");
+            content.innerHTML = `
+                <h3>录入学生信息</h3>
+                <input type="text" id="inNum" placeholder="学号">
+                <input type="text" id="inName" placeholder="姓名">
+                <input type="text" id="inChinese" placeholder="语文">
+                <input type="text" id="inMath" placeholder="数学">
+                <input type="text" id="inEnglish" placeholder="英语">
+                <button id="saveBtn">保存</button>
+                <div id="formTip"></div>
+            `;
+
+            const saveBtn = document.getElementById("saveBtn");
+            saveBtn.addEventListener("click", function () {
+                const num = document.getElementById("inNum").value.trim();
+                const name = document.getElementById("inName").value.trim();
+                const chinese = document.getElementById("inChinese").value.trim();
+                const math = document.getElementById("inMath").value.trim();
+                const english = document.getElementById("inEnglish").value.trim();
+                const formTip = document.getElementById("formTip");
+
+                if (num === "" || name === "" || chinese === "" || math === "" || english === "") {
+                    formTip.textContent = "所有字段都不能为空！";
+                    formTip.style.color = "#e74c3c";
+                    return;
+                }
+
+                for (let i = 0; i < students.length; i++) {
+                    if (students[i].num === num) {
+                        formTip.textContent = "学号已存在！";
+                        formTip.style.color = "#e74c3c";
+                        return;
+                    }
+                }
+
+                students.push({
+                    num: num,
+                    name: name,
+                    chinese: Number(chinese),
+                    math: Number(math),
+                    english: Number(english)
+                });
+
+                saveToStorage();
+                formTip.textContent = "保存成功！";
+                formTip.style.color = "#27ae60";
+            });
+        });
+
+        btnPrint.addEventListener("click", function () {
+            const content = document.getElementById("content");
+
+            if (students.length === 0) {
+                content.innerHTML = "<h3>学生信息列表</h3><p>暂无学生信息</p>";
+                return;
+            }
+
+            let html = "<h3>学生信息列表</h3>";
+            html += "<table>";
+            html += "<tr><th>学号</th><th>姓名</th><th>语文</th><th>数学</th><th>英语</th><th>总分</th></tr>";
+
+            for (let i = 0; i < students.length; i++) {
+                const s = students[i];
+                const total = s.chinese + s.math + s.english;
+                html += "<tr>";
+                html += "<td>" + s.num + "</td>";
+                html += "<td>" + s.name + "</td>";
+                html += "<td>" + s.chinese + "</td>";
+                html += "<td>" + s.math + "</td>";
+                html += "<td>" + s.english + "</td>";
+                html += "<td>" + total + "</td>";
+                html += "</tr>";
+            }
+
+            html += "</table>";
+            content.innerHTML = html;
+        });
+
+        btnCount.addEventListener("click", function () {
+            const content = document.getElementById("content");
+            content.innerHTML = "<h3>统计结果</h3><p>学生总人数：" + students.length + " 人</p>";
+        });
+
+        btnFind.addEventListener("click", function () {
+            const content = document.getElementById("content");
+            content.innerHTML = `
+                <h3>查找学生</h3>
+                <input type="text" id="findNum" placeholder="请输入学号">
+                <button id="findBtn">查找</button>
+                <div id="findResult"></div>
+            `;
+
+            const findBtn = document.getElementById("findBtn");
+            findBtn.addEventListener("click", function () {
+                const findNum = document.getElementById("findNum").value.trim();
+                const findResult = document.getElementById("findResult");
+
+                for (let i = 0; i < students.length; i++) {
+                    if (students[i].num === findNum) {
+                        const s = students[i];
+                        findResult.innerHTML =
+                            "找到学生：<br>" +
+                            "学号：" + s.num + "<br>" +
+                            "姓名：" + s.name + "<br>" +
+                            "语文：" + s.chinese + "<br>" +
+                            "数学：" + s.math + "<br>" +
+                            "英语：" + s.english;
+                        findResult.style.color = "#27ae60";
+                        return;
+                    }
+                }
+
+                findResult.textContent = "未找到该学生";
+                findResult.style.color = "#e74c3c";
+            });
+        });
+
+        btnModify.addEventListener("click", function () {
+            if (!checkMode("修改学生信息")) return;
+
+            const content = document.getElementById("content");
+            content.innerHTML = `
+                <h3>修改学生信息</h3>
+                <input type="text" id="modNum" placeholder="请输入要修改的学号">
+                <button id="modSearchBtn">查找</button>
+                <div id="modForm"></div>
+            `;
+
+            const modSearchBtn = document.getElementById("modSearchBtn");
+            modSearchBtn.addEventListener("click", function () {
+                const modNum = document.getElementById("modNum").value.trim();
+                const modForm = document.getElementById("modForm");
+
+                let target = null;
+                for (let i = 0; i < students.length; i++) {
+                    if (students[i].num === modNum) {
+                        target = students[i];
+                        break;
+                    }
+                }
+
+                if (!target) {
+                    modForm.textContent = "未找到该学生";
+                    modForm.style.color = "#e74c3c";
+                    return;
+                }
+
+                modForm.innerHTML = `
+                    <p>找到学生，请填写新信息：</p>
+                    <input type="text" id="newName" placeholder="姓名" value="${target.name}">
+                    <input type="text" id="newChinese" placeholder="语文" value="${target.chinese}">
+                    <input type="text" id="newMath" placeholder="数学" value="${target.math}">
+                    <input type="text" id="newEnglish" placeholder="英语" value="${target.english}">
+                    <button id="modSaveBtn">保存修改</button>
+                    <div id="modTip"></div>
+                `;
+
+                const modSaveBtn = document.getElementById("modSaveBtn");
+                modSaveBtn.addEventListener("click", function () {
+                    const newName = document.getElementById("newName").value.trim();
+                    const newChinese = document.getElementById("newChinese").value.trim();
+                    const newMath = document.getElementById("newMath").value.trim();
+                    const newEnglish = document.getElementById("newEnglish").value.trim();
+                    const modTip = document.getElementById("modTip");
+
+                    if (newName === "" || newChinese === "" || newMath === "" || newEnglish === "") {
+                        modTip.textContent = "所有字段都不能为空！";
+                        modTip.style.color = "#e74c3c";
+                        return;
+                    }
+
+                    target.name = newName;
+                    target.chinese = Number(newChinese);
+                    target.math = Number(newMath);
+                    target.english = Number(newEnglish);
+
+                    saveToStorage();
+                    modTip.textContent = "修改成功！";
+                    modTip.style.color = "#27ae60";
+                });
+            });
+        });
+
+        btnDelete.addEventListener("click", function () {
+            if (!checkMode("删除学生信息")) return;
+
+            const content = document.getElementById("content");
+            content.innerHTML = `
+                <h3>删除学生</h3>
+                <input type="text" id="delNum" placeholder="请输入要删除的学号">
+                <button id="delBtn">删除</button>
+                <div id="delTip"></div>
+            `;
+
+            const delBtn = document.getElementById("delBtn");
+            delBtn.addEventListener("click", function () {
+                const delNum = document.getElementById("delNum").value.trim();
+                const delTip = document.getElementById("delTip");
+
+                for (let i = 0; i < students.length; i++) {
+                    if (students[i].num === delNum) {
+                        students.splice(i, 1);
+                        saveToStorage();
+                        delTip.textContent = "删除成功！";
+                        delTip.style.color = "#27ae60";
+                        return;
+                    }
+                }
+
+                delTip.textContent = "未找到该学生";
+                delTip.style.color = "#e74c3c";
+            });
+        });
+
+        btnSort.addEventListener("click", function () {
+            if (!checkMode("排序")) return;
+
+            const content = document.getElementById("content");
+            content.innerHTML = `
+                <h3>排序</h3>
+                <p>请选择排序字段：</p>
+                <button id="sortNum">按学号</button>
+                <button id="sortChinese">按语文</button>
+                <button id="sortMath">按数学</button>
+                <button id="sortEnglish">按英语</button>
+                <button id="sortTotal">按总分</button>
+                <div id="sortResult"></div>
+            `;
+
+            function showSorted() {
+                const sortResult = document.getElementById("sortResult");
+                if (students.length === 0) {
+                    sortResult.innerHTML = "<p>暂无学生信息</p>";
+                    return;
+                }
+
+                let html = "<table>";
+                html += "<tr><th>学号</th><th>姓名</th><th>语文</th><th>数学</th><th>英语</th><th>总分</th></tr>";
+                for (let i = 0; i < students.length; i++) {
+                    const s = students[i];
+                    const total = s.chinese + s.math + s.english;
+                    html += "<tr>";
+                    html += "<td>" + s.num + "</td>";
+                    html += "<td>" + s.name + "</td>";
+                    html += "<td>" + s.chinese + "</td>";
+                    html += "<td>" + s.math + "</td>";
+                    html += "<td>" + s.english + "</td>";
+                    html += "<td>" + total + "</td>";
+                    html += "</tr>";
+                }
+                html += "</table>";
+                sortResult.innerHTML = html;
+            }
+
+            document.getElementById("sortNum").addEventListener("click", function () {
+                students.sort(function (a, b) { return a.num - b.num; });
+                saveToStorage();
+                showSorted();
+            });
+
+            document.getElementById("sortChinese").addEventListener("click", function () {
+                students.sort(function (a, b) { return b.chinese - a.chinese; });
+                saveToStorage();
+                showSorted();
+            });
+
+            document.getElementById("sortMath").addEventListener("click", function () {
+                students.sort(function (a, b) { return b.math - a.math; });
+                saveToStorage();
+                showSorted();
+            });
+
+            document.getElementById("sortEnglish").addEventListener("click", function () {
+                students.sort(function (a, b) { return b.english - a.english; });
+                saveToStorage();
+                showSorted();
+            });
+
+            document.getElementById("sortTotal").addEventListener("click", function () {
+                students.sort(function (a, b) {
+                    const ta = a.chinese + a.math + a.english;
+                    const tb = b.chinese + b.math + b.english;
+                    return tb - ta;
+                });
+                saveToStorage();
+                showSorted();
+            });
+        });
+
+        btnExit.addEventListener("click", function () {
+            localStorage.removeItem("checkAdmin");
+            window.location.href = "index.html";
+        });
+    </script>
+
+</body>
+</html>
